@@ -21,7 +21,7 @@ stop() ->
   Bj_Pid = whereis(bjgame),
   case Bj_Pid of
     undefined -> already_stopped;
-   _ -> 
+   _          -> 
     exit(Bj_Pid, kill),
     stopped
   end.
@@ -31,9 +31,8 @@ make_deck() -> shuffled(deck()).
 init() -> loop ([]).
 
 member(_Pid,L) when length (L) == 0 -> undefined;
-member(Pid,L) when length (L) >=1    -> 
-  if Pid == element(1, hd (L)) -> element(2, hd (L));
-        %assuming there is only one value return for 1 Pid and 1 key, no recursion after finding the value
+member(Pid,L)  when length (L) >=1  -> 
+  if Pid == element(1, hd (L)) -> {element(2, hd (L)),element(3, hd (L)),element(4, hd (L))};
       true                     -> member(Pid,tl(L))
   end.
 
@@ -45,23 +44,35 @@ loop(List) ->
     loop ([ {From,make_deck(),0,0} |List]);
   {From, add_deck, N} -> 
     Num = N,
-    Deck = member(From, List),
-    case Deck of 
+    case member(From, List) of 
       undefined -> 
         From! {not_added, 'You have to start first'},
         loop (List);
       _ -> 
-        From! {added, Num},
+        Deck = element (1,member(From, List)),
         Add = lists:append(lists:duplicate(Num, make_deck())),
         New_deck = Add ++ Deck,
-        loop ([ {Pid, New_deck, B, P} || {Pid, _, B, P} <- List]) %
+        From! {added, Num},
+        loop ([ {Pid, New_deck, B, P} || {Pid, _, B, P} <- List])
+    end;
+  {From, bet, N} ->
+    Num = N,
+    case member(From, List) of 
+      undefined -> 
+        From! {not_bet, 'You have to start first'},
+        loop (List);
+      _ -> 
+        Old_bet = element(2,member(From, List)),
+        New_bet = Old_bet + Num,
+        From! {bet, Num, New_bet},
+        loop ([{Pid,D, New_bet, P} || {Pid, D, _, P} <- List])
     end
   end.
 
 add_deck(N) -> 
   bjgame! {self(), add_deck, N},
   receive 
-    {added, Msg} -> io:format('Added ~p decks to current deck ~n', [Msg]);
+    {added, Msg}     -> io:format('Added ~p decks to current deck ~n', [Msg]);
     {not_added, Msg} -> Msg
   after 1000 ->
     timeout  
@@ -76,7 +87,14 @@ usr_start() ->
   end.
 
 %usr has to bet/double down first then can hit or stand.
-usr_bet(_N) -> ok.
+usr_bet(N) -> 
+  bjgame! {self(), bet, N},
+  receive 
+    {bet, Msg1, Msg2}     -> io:format('You bet ~p and you are betting ~p ~n', [Msg1, Msg2]);
+    {not_bet, Msg} -> Msg
+  after 1000 ->
+    timeout  
+  end. 
 
 usr_double_down()-> ok.
 
