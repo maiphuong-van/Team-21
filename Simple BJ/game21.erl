@@ -30,8 +30,8 @@ make_deck() -> shuffled(deck()).
 
 init() -> loop ([]).
 
-member(_Pid,L) when length (L) == 0 -> undefined;
-member(Pid,L)  when length (L) >=1  -> 
+member(_Pid,L) when L == []-> undefined;
+member(Pid,L)   -> 
   if Pid == element(1, hd (L)) -> {element(2, hd (L)),element(3, hd (L)),element(4, hd (L))};
       true                     -> member(Pid,tl(L))
   end.
@@ -39,17 +39,9 @@ member(Pid,L)  when length (L) >=1  ->
 % Loop gotta have deck, bet, point from usr n dealer
 loop(List) -> 
   receive 
-  {From, start} -> 
-    case member(From, List) of 
-      undefined ->
-        From! {started, 'Please make a bet'},
-        loop ([{From,make_deck(),0,0} |List]);
-      _ -> 
-        From! {started, 'Please make a bet'},
-        Deck = element (1,member(From, List)),
-        Add = make_deck(),
-        New_deck = Deck + Add,
-        loop([{From,New_deck,0,0}] ++ [{Pid, New_deck, B, P} || {Pid, _, B, P} <- List]);
+  {From, start} ->
+    From! {started, 'Please make a bet'},
+    loop ([{From,make_deck(),0,0} |List]);
 %  {From, add_deck, N} -> 
 %    Num = N,
 %    case member(From, List) of 
@@ -64,16 +56,16 @@ loop(List) ->
 %        loop ([ {Pid, New_deck, B, P} || {Pid, _, B, P} <- List])
 %    end;
   {From, bet, N} ->
-    Num = N,
     case member(From, List) of 
       undefined -> 
         From! {not_bet, 'You have to start first'},
         loop (List);
       _ -> 
+        Num = N,
         Old_bet = element(2,member(From, List)),
         New_bet = Old_bet + Num,
         From! {bet, Num, New_bet},
-        loop ([{Pid,D, New_bet, P} || {Pid, D, _, P} <- List])
+        loop ([{Pid,D, New_bet, P} || {Pid, D, _, P} <- List, Pid == From])
     end
   end.
 
@@ -89,7 +81,7 @@ loop(List) ->
 usr_start() -> 
   bjgame! {self(), start},
   receive 
-    {started, Msg} -> Msg 
+    {started, Msg} ->Msg
   after 1000 ->
     timeout  
   end.
