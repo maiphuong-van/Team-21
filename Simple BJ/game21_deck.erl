@@ -34,4 +34,11 @@ randomize(List) ->
                     D = lists:map(fun(A) -> {random:uniform(), A} end, List),
                     {_, D1} = lists:unzip(lists:keysort(1, D)), 
                    D1.
+
+
+deal(List)  ->  
+         {hd(List)}.
+
+
+                   
 %Peili
