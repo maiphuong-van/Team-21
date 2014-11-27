@@ -32,7 +32,7 @@ init() -> loop ([]).
 
 member(_Pid,L) when L == []-> undefined;
 member(Pid,L)   -> 
-  if Pid == element(1, hd (L)) -> {element(2, hd (L)),element(3, hd (L)),element(4, hd (L))};
+  if Pid == element(1, hd (L)) -> {element(2, hd (L)),element(3, hd (L)),element(4, hd (L)), element(5, hd (L)), element(6, hd (L))};
       true                     -> member(Pid,tl(L))
   end.
 
