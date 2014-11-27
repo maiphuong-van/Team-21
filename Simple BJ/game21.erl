@@ -41,20 +41,9 @@ loop(List) ->
   receive 
   {From, start} ->
     From! {started, 'Please make a bet'},
-    loop ([{From,make_deck(),0,0} |List]);
-%  {From, add_deck, N} -> 
-%    Num = N,
-%    case member(From, List) of 
-%      undefined -> 
-%        From! {not_added, 'You have to start first'},
-%        loop (List);
-%      _ -> 
-%        Deck = element (1,member(From, List)),
-%        Add = lists:append(lists:duplicate(Num, make_deck())),
-%        New_deck = Add ++ Deck,
-%        From! {added, Num},
-%        loop ([ {Pid, New_deck, B, P} || {Pid, _, B, P} <- List])
-%    end;
+    %what to save here: Pid, deck, bet, user point, dealer point, user card, dealer card.
+    loop ([{From,make_deck(),0,0,0, [], []} |List]);
+
   {From, bet, N} ->
     case member(From, List) of 
       undefined -> 
@@ -62,21 +51,13 @@ loop(List) ->
         loop (List);
       _ -> 
         Num = N,
-        Old_bet = element(2,member(From, List)),
-        New_bet = Old_bet + Num,
-        From! {bet, Num, New_bet},
-        loop ([{Pid,D, New_bet, P} || {Pid, D, _, P} <- List, Pid == From])
+        % after bet, deals 2 cards, let the player knows their point
+        % also dealer deals 2 cards and save the points
+        From! {bet, N},
+        loop ([{Pid,D, N, UsrP, DlrP, UsrC, DlrC} || {Pid, D, _, UsrP, DlrP, UsrC, DlrC} <- List, Pid == From])
     end
   end.
 
-%add_deck(N) -> 
-%  bjgame! {self(), add_deck, N},
-%  receive 
-%    {added, Msg}     -> io:format('Added ~p decks to current deck ~n', [Msg]);
-%    {not_added, Msg} -> Msg
-%  after 1000 ->
-%    timeout  
-%  end. 
 
 usr_start() -> 
   bjgame! {self(), start},
@@ -90,7 +71,7 @@ usr_start() ->
 usr_bet(N) -> 
   bjgame! {self(), bet, N},
   receive 
-    {bet, Msg1, Msg2}     -> io:format('You bet ~p and you are betting ~p ~n', [Msg1, Msg2]);
+    {bet, Msg}     -> io:format('You bet ~p ~n', [Msg]);
     {not_bet, Msg} -> Msg
   after 1000 ->
     timeout  
