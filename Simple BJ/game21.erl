@@ -1,5 +1,5 @@
 -module (game21).
--import (game21_deck, [deck/0, shuffled/1]).
+-import (game21_deck, [deck/0, shuffled/1,deal/1]).
 
 %-define(SUITS, [diamond, heart, club, spade] ).
 %-define(CARDS, [{ace,1},{2,2},{3,3},{4,4},{5,5},{6,6},{7,7},{8,8},{9,9},{10,10},{jack,10},{queen,10},{king,10}]).
@@ -56,6 +56,34 @@ loop(List) ->
         From! {bet, N},
         loop ([{Pid,D, N, UsrP, DlrP, UsrC, DlrC} || {Pid, D, _, UsrP, DlrP, UsrC, DlrC} <- List, Pid == From])
     end
+
+
+  %{From, double}->
+    %case member(From, List) of 
+      %undefined -> 
+      %From! {not_bet, 'You have to start first'},
+     % loop (List);
+    %_ -> 
+      %double_bet= element(2,menber(From, List))*2,
+      %new_card = deal(element(1,menber(From, List))),
+      %user_newpoint= element(4,menber(From,List)+element(2, 
+         
+      %dealer_point=
+
+      %if  
+        %check funtion with if its over 21
+        %compare user with dealer points, user win then send win messgage
+       %   From! {double, win} 
+        %true
+        %  From! {double, lose}
+      %end
+      %user_moneyleft=
+      % new_deck=  cards left in deck 
+
+      %loop([{Pid, D, N, 0, 0, [],[]}|| {Pid, _, N, _,_,_,_} <- List, Pid == From, D==new_deck])  
+    
+  %end.
+
   end.
 
 
@@ -67,7 +95,7 @@ usr_start() ->
     timeout  
   end.
 
-%usr has to bet/double down first then can hit or stand.
+%usr has to bet first then can hit or stand.
 usr_bet(N) -> 
   bjgame! {self(), bet, N},
   receive 
@@ -77,7 +105,17 @@ usr_bet(N) ->
     timeout  
   end. 
 
-usr_double_down()-> ok.
+
+
+% user chosen double down or hit or stay. once chosen hit, double down won't show in next trun, (only showing hit or stand)
+% when chosen double, user will recive one more card and double the bet and game end.
+%usr_double_down()-> 
+%     bjgame! {self(), double},
+%receive
+%     {double, Msg } -> io:format('You ~p ~n', [Msg]);
+% after 1000 ->
+%   timeout 
+%end.
 
 % Hit or stand and get message win/lose/ask for another hit or stand
 usr_hit () -> ok.
