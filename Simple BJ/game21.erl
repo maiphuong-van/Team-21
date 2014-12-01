@@ -1,10 +1,10 @@
 -module (game21).
--import (game21_deck, [deck/0, shuffled/1,deal/1]).
+-import (game21_deck, [deck/0, shuffled/1,deal/2]).
 
 %-define(SUITS, [diamond, heart, club, spade] ).
 %-define(CARDS, [{ace,1},{2,2},{3,3},{4,4},{5,5},{6,6},{7,7},{8,8},{9,9},{10,10},{jack,10},{queen,10},{king,10}]).
 -export([start/0,stop/0, init/0,usr_bet/1,
-  usr_double_down/0,usr_hit/0,usr_stand/0,make_deck/0,usr_start/0]).
+  usr_double_down/0,usr_hit/0,usr_stand/0,make_deck/0,usr_start/0, point/2]).
 
 start() ->
   Bj_Pid = whereis(bjgame),
@@ -45,17 +45,26 @@ loop(List) ->
     loop ([{From,make_deck(),0,0,0, [], [], 1000} |List]);
 
   {From, bet, N} ->
-    case member(From, List) of 
+    Tuple = member(From, List),
+    case Tuple of 
       undefined -> 
         From! {not_bet, 'You have to start first'},
         loop (List);
       _ -> 
-        Num = N,
         % after bet, deals 2 cards, let the player knows their point
+        UsrC = deal(element(2,Tuple), 2), 
+        UsrP = point (UsrC, element(4, Tuple)),
+        New_deck = element(2, Tuple) -- UsrC,
+
         % also dealer deals 2 cards and save the points
-        From! {bet, N},
-        loop ([{Pid,D, N, UsrP, DlrP, UsrC, DlrC, M} || {Pid, D, _, UsrP, DlrP, UsrC, DlrC, M} <- List, Pid == From])
+        DlrC = deal(New_deck, 2),
+        DlrP = point (DlrC, element(5,Tuple)),
+        D = New_deck -- DlrC,
+
+        From!{bet, N, UsrC, hd(DlrC)},
+        loop([{Pid,D, N, UsrP, DlrP, UsrC, DlrC, M} || {Pid, _, _, _, _, _, _, M} <- List, Pid =:= From])
     end
+  end.
   %{From, hit}->
   %Check if user has started the game
   %No -> error message
@@ -108,10 +117,6 @@ loop(List) ->
 
       %loop initial bet, new deck, no point for user, dealer, no card dealt, new amount of money
       %loop([{Pid, D, N, 0, 0, [],[]}|| {Pid, _, N, _,_,_,_} <- List, Pid == From, D==new_deck])  
-    
-  %end.
-
-  end.
 
 
 usr_start() -> 
@@ -126,7 +131,7 @@ usr_start() ->
 usr_bet(N) -> 
   bjgame! {self(), bet, N},
   receive 
-    {bet, Msg}     -> io:format('You bet ~p ~n', [Msg]);
+    {bet, Msg1, Msg2, Msg3}     -> io:format('You bet ~p, your cards are ~p, dealer cards are ~p. ~n', [Msg1, Msg2, Msg3]);
     {not_bet, Msg} -> Msg
   after 1000 ->
     timeout  
@@ -136,7 +141,7 @@ usr_bet(N) ->
 
 % user chosen double down or hit or stay. once chosen hit, double down won't show in next turn, (only showing hit or stand)
 % when chosen double, user will recive one more card and double the bet and game end.
-%usr_double_down()-> 
+usr_double_down()->  ok.
 %     bjgame! {self(), double},
 %receive
 %     {double, Msg } -> io:format('You ~p ~n', [Msg]);
@@ -149,10 +154,17 @@ usr_hit () -> ok.
 
 usr_stand() -> ok.
 
+%point is to check card's point since we have ace as special case
+point([], UsrP) -> UsrP;
+point(Card_List, UsrP) -> 
+  C = hd(Card_List), 
+  case element(2,C) of 
+    ace -> 
+      if UsrP =< 10 -> New_UsrP = UsrP + 11;
+         true       -> New_UsrP= UsrP +1
+      end;
+    _ -> New_UsrP = UsrP + element(3,C)
+  end, 
+  point(tl(Card_List), New_UsrP).
 
-point(C, UsrP) -> ok.
-%point is to check card's point
-%If card is Ace, check UsrP, UsrP is less than 10, return 11+ UsrP
-%If UsrP over 10, return 1+ UsrP
-%Else, get card's point in the tuple and then plus with UsrP
 
