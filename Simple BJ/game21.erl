@@ -4,7 +4,7 @@
 %-define(SUITS, [diamond, heart, club, spade] ).
 %-define(CARDS, [{ace,1},{2,2},{3,3},{4,4},{5,5},{6,6},{7,7},{8,8},{9,9},{10,10},{jack,10},{queen,10},{king,10}]).
 -export([start/0,stop/0, init/0,usr_bet/1,
-  usr_double_down/0,usr_hit/0,usr_stand/0,make_deck/0,usr_start/0, point/2]).
+  usr_double_down/0,usr_hit/0,usr_stand/0,make_deck/0,usr_start/0, point/2, dealer_deal/3]).
 
 start() ->
   Bj_Pid = whereis(bjgame),
@@ -33,7 +33,7 @@ init() -> loop ([]).
 member(_Pid,L) when L == []-> undefined;
 member(Pid,L)   -> 
   if Pid == element(1, hd (L)) -> hd(L);
-      true                     -> member(Pid,tl(L))
+     true                      -> member(Pid,tl(L))
   end.
 
 % Loop gotta have deck, bet, point from usr n dealer
@@ -50,7 +50,7 @@ loop(List) ->
       undefined -> 
         From! {not_bet, 'You have to start first'},
         loop (List);
-      _ -> 
+      _         -> 
         % after bet, deals 2 cards, let the player knows their point
         UsrC = deal(element(2,Tuple), 2), 
         UsrP = point (UsrC, element(4, Tuple)),
@@ -63,27 +63,74 @@ loop(List) ->
 
         From!{bet, N, UsrC, hd(DlrC)},
         loop([{Pid,D, N, UsrP, DlrP, UsrC, DlrC, M} || {Pid, _, _, _, _, _, _, M} <- List, Pid =:= From])
-    end
-  end.
-  %{From, hit}->
+    end;
+
+    {From, hit} ->
+    Tuple = member(From, List),
+      case Tuple of 
+        undefined -> 
+          From! {not_bet, 'You have to start first'},
+          loop (List);
+        _         -> 
+        %Deal 1 card and calculate points
+          UsrC = deal(element(2,Tuple), 1), 
+          UsrP = point(UsrC, element(4, Tuple)),
+          D = element(2, Tuple) -- UsrC,
+          New_UsrC = element(6, Tuple) ++ UsrC,
+          DlrC = element(7, Tuple),
+          
+          %check if user loose or still in the game
+          if
+            UsrP =< 21 ->
+              From!{usr_hit, New_UsrC, hd(DlrC), 'hit or stand?'},
+              loop([{Pid,D, N, UsrP, DlrP, New_UsrC, DlrC, M} || {Pid, _, N, _, DlrP, _, _, M} <- List, Pid =:= From]);
+            true       ->  
+              From! {usr_hit, New_UsrC, hd(DlrC), loose},
+              New_Money = element(8, Tuple) - element(3,Tuple),
+              loop([{Pid,D, 0, 0, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _, _, _} <- List, Pid =:= From])
+          end
+
+        end;
+
+  {From, stand}->
   %Check if user has started the game
-  %No -> error message
-  %Yes -> Deal one more care to user
-  %Check the point
-  %If under 21
-  %(Not sure if dealer deal 1 more card or not
-    %probably yes, deal 1 card to dealer and check point, if over 21, send win message
-    %else send hit or stand)
-  %send message hit or stand
-  % if over 21, send loosing message 
- 
-  %{From, stand}->
-  %Check if user has started the game
-  %No then send error message
-  %Yes, check dealer's point, if under 16 then add deal more cards to dealer until it's over 16
-  %check if DlrP is over 21, if yes send win message
-  %else, then compare dealer and user's point
-  %Send win or loose message
+  Tuple = member(From, List),
+      case Tuple of 
+        undefined -> 
+          From! {not_bet, 'You have to start first'},
+          loop (List);
+        _         -> 
+          DlrC = element(7,Tuple),
+          DlrP = element(5,Tuple),
+          UsrP = element(4,Tuple),
+          UsrC = element(6,Tuple),
+          Bet  = element(3,Tuple),
+          Money = element(8,Tuple),
+          D = element (2,Tuple),
+
+          if UsrP == 21                   -> 
+              From! {usr_stand, UsrC, DlrC, 'have blackjack'},
+              New_Money = Money + 1.5* Bet,
+              loop([{Pid,D, 0, 0, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _, _, _} <- List, Pid =:= From]);
+             DlrP == 21 andalso UsrP < 21 ->
+              From! {usr_stand, UsrC, DlrC, loose},
+              New_Money = Money - Bet,
+              loop([{Pid,D, 0, 0, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _, _, _} <- List, Pid =:= From]);
+            true                         -> 
+              New_DlrC = dealer_deal(D, DlrC, DlrP),
+              New_DlrP = point (New_DlrC, 0),
+              New_deck = D -- New_DlrC,
+              if New_DlrP < UsrP -> 
+                From! {usr_stand, UsrC, New_DlrC, win},
+                New_Money = Money + Bet,
+                loop([{Pid,New_deck, 0, 0, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _, _, _} <- List, Pid =:= From]);
+                true -> 
+                 From! {usr_stand, UsrC, New_DlrC, loose},
+              New_Money = Money - Bet,
+              loop([{Pid,New_deck, 0, 0, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _, _, _} <- List, Pid =:= From])
+              end
+            end
+        end
 
   %{From, double}->
   %Check if the user has initial bet
@@ -110,14 +157,14 @@ loop(List) ->
         %true
         %  From! {double, lose}
       %end
-      %calculate how much money is left
+      %calculate how much money is left, if win , plus with double_bet, loose, minus that
       %user_moneyleft=
       % new deck is the deck before -- all cards dealt 
       % new_deck=  cards left in deck 
 
       %loop initial bet, new deck, no point for user, dealer, no card dealt, new amount of money
       %loop([{Pid, D, N, 0, 0, [],[]}|| {Pid, _, N, _,_,_,_} <- List, Pid == From, D==new_deck])  
-
+end.
 
 usr_start() -> 
   bjgame! {self(), start},
@@ -150,21 +197,45 @@ usr_double_down()->  ok.
 %end.
 
 % Hit or stand and get message win/lose/ask for another hit or stand
-usr_hit () -> ok.
+usr_hit () -> 
+  bjgame! {self(), hit},
+  receive  
+    {not_bet, Msg} -> Msg;
+    {usr_hit, Msg1, Msg2, Msg3} -> io:format('Your cards are ~p, dealer cards are ~p, you ~p. ~n', [Msg1, Msg2, Msg3])
+  after 1000 -> 
+    timeout
+  end.
 
-usr_stand() -> ok.
+usr_stand() ->  
+  bjgame! {self(), stand},
+  receive  
+    {not_bet, Msg} -> Msg;
+    {usr_stand, Msg1, Msg2, Msg3} -> io:format('Your cards are ~p, dealer cards are ~p, you ~p. ~n', [Msg1, Msg2, Msg3])
+  after 1000 -> 
+    timeout
+  end.
 
 %point is to check card's point since we have ace as special case
-point([], UsrP) -> UsrP;
+point([], UsrP)        -> UsrP;
 point(Card_List, UsrP) -> 
   C = hd(Card_List), 
   case element(2,C) of 
-    ace -> 
+    ace   -> 
       if UsrP =< 10 -> New_UsrP = UsrP + 11;
-         true       -> New_UsrP= UsrP +1
+         true       -> New_UsrP = UsrP +1
       end;
-    _ -> New_UsrP = UsrP + element(3,C)
+    jack  -> New_UsrP = UsrP + 10;
+    queen -> New_UsrP = UsrP + 10;
+    king  -> New_UsrP = UsrP + 10;
+    _     -> 
+      New_UsrP = UsrP + element(2,C)
   end, 
   point(tl(Card_List), New_UsrP).
 
-
+dealer_deal (_, DlrC, DlrP) when DlrP> 16                   -> DlrC;
+dealer_deal (Deck, DlrC, DlrP) when DlrP >0 andalso DlrP =< 16 ->
+  New_card = deal(Deck, 1),
+  New_point = point(New_card, DlrP),
+  New_deck = Deck -- New_card,
+  New_DlrC = DlrC ++ New_card, 
+  dealer_deal (New_deck, New_DlrC, New_point).
