@@ -100,14 +100,14 @@ loop(List) ->
           From! {not_bet, 'You have to start first'},
           loop (List);
         _         -> 
-          DlrC = element(7,Tuple),
-          DlrP = element(5,Tuple),
-          UsrP = element(4,Tuple),
-          UsrC = element(6,Tuple),
-          Bet  = element(3,Tuple),
-          Money = element(8,Tuple),
           D = element (2,Tuple),
-
+          Bet  = element(3,Tuple),
+          UsrP = element(4,Tuple),
+          DlrP = element(5,Tuple),
+          UsrC = element(6,Tuple),
+          DlrC = element(7,Tuple),
+          Money = element(8,Tuple),
+          
           if UsrP == 21                   -> 
               From! {usr_stand, UsrC, DlrC, 'have blackjack'},
               New_Money = Money + 1.5* Bet,
