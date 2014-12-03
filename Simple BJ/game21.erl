@@ -105,10 +105,7 @@ loop(List) ->
           UsrP = point(UsrC),
           DlrP = point(DlrC),
           
-          if DlrP == UsrP ->
-              From! {usr_stand, UsrC, DlrC, draw},
-              loop([{Pid,D, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]); 
-            UsrP == 21 andalso length(UsrC) == 2             -> 
+          if UsrP == 21 andalso length(UsrC) == 2             -> 
               From! {usr_stand, UsrC, DlrC, 'have blackjack'},
               New_Money = Money + 1.5* Bet,
               loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
@@ -116,22 +113,26 @@ loop(List) ->
               From! {usr_stand, UsrC, DlrC, loose},
               New_Money = Money - Bet,
               loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
-            DlrP > 21 -> 
-              From! {usr_stand, UsrC, DlrC, win},
-              New_Money = Money + Bet,
-              loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+           
             true                         -> 
               New_DlrC = dealer_deal(D, DlrC, DlrP),
               New_DlrP = point (New_DlrC),
               New_deck = D -- New_DlrC,
-              if New_DlrP < UsrP -> 
-                From! {usr_stand, UsrC, New_DlrC, win},
-                New_Money = Money + Bet,
-                loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+              if New_DlrP > 21 -> 
+                  From! {usr_stand, UsrC, DlrC, win},
+                  New_Money = Money + Bet,
+                  loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+                New_DlrP < UsrP -> 
+                  From! {usr_stand, UsrC, New_DlrC, win},
+                  New_Money = Money + Bet,
+                  loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+                New_DlrP == UsrP -> 
+                  From! {usr_stand, UsrC, New_DlrC, draw},
+                  loop([{Pid,New_deck, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);         
                 true -> 
-                 From! {usr_stand, UsrC, New_DlrC, loose},
-              New_Money = Money - Bet,
-              loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
+                  From! {usr_stand, UsrC, New_DlrC, loose},
+                  New_Money = Money - Bet,
+                  loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
               end
             end
         end
@@ -256,5 +257,5 @@ dealer_deal (Deck, DlrC, DlrP) when DlrP >0 andalso DlrP =< 16 ->
   New_card = deal(Deck, 1),
   New_deck = Deck -- New_card,
   New_DlrC = DlrC ++ New_card, 
-  New_DlrP = point(New_card, DlrP),
+  New_DlrP = point(New_DlrC),
   dealer_deal (New_deck, New_DlrC, New_DlrP).
