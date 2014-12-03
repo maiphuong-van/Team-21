@@ -2,12 +2,12 @@
 -export([deck/0, shuffled/1,deal/2]).
 
 -define(SUITS, [diamond, heart, club, spade] ).
--define(CARDS, [{ace,1},{2,2},{3,3},{4,4},{5,5},{6,6},{7,7},{8,8},{9,9},{10,10},{jack,10},{queen,10},{king,10}]).
+-define(CARDS, [{ace},{2},{3},{4},{5},{6},{7},{8},{9},{10},{jack},{queen},{king}]).
 %sign the number and the value to each card, not sure if need to sign one more {ace,11}??
 
 
 deck() ->
-     F = fun(S) -> [{S, C, V} || {C, V} <- ?CARDS] end,
+     F = fun(S) -> [{C, S} || {C} <- ?CARDS] end,
  	lists:flatten(lists:map(F, ?SUITS)).
  	%to sign cards and suits together,
     %use lists:flatten to flat the 4 different lists to become one total list
