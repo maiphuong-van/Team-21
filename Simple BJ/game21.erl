@@ -40,7 +40,7 @@ member(Pid,L)   ->
 loop(List) -> 
   receive 
   {From, start} ->
-    From! {started, 'Please make a bet'},
+    From! {started, 'Please join a room or make a bet of minimum 50 and maximum 500'},
     %what to save here: Pid, deck, bet, user point, dealer point, user card, dealer card.
     loop ([{From,make_deck(),0, [], [], 1000} |List]);
 
@@ -51,16 +51,25 @@ loop(List) ->
         From! {not_bet, 'You have to start first'},
         loop (List);
       _         -> 
+        M = element(6,Tuple),
+        if M < N -> 
+          From! {cannot_bet, 'You do not have enough money to bet'},
+          loop(List);
+        true -> 
         % after bet, deals 2 cards, let the player knows their point
-        UsrC = deal(element(2,Tuple), 2), 
-        New_deck = element(2, Tuple) -- UsrC,
+          UsrC = deal(element(2,Tuple), 2), 
+          New_deck = element(2, Tuple) -- UsrC,
 
-        % also dealer deals 2 cards and save the points
-        DlrC = deal(New_deck, 2),
-        D = New_deck -- DlrC,
+          % also dealer deals 2 cards and save the points
+          DlrC = deal(New_deck, 2),
+          D = New_deck -- DlrC,
 
-        From!{bet, N, UsrC, hd(DlrC)},
-        loop([{Pid,D, N, UsrC, DlrC, M} || {Pid, _, _, _, _, M} <- List, Pid =:= From])
+          %get the amount of money to show
+          
+
+          From!{bet, N, UsrC, hd(DlrC), M},
+          loop([{Pid,D, N, UsrC, DlrC, M} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
+        end
     end;
 
     {From, hit} ->
@@ -76,15 +85,19 @@ loop(List) ->
           UsrP = point(New_UsrC),
           D = element(2, Tuple) -- UsrC,
           
+          %get dealer cards to show to user
           DlrC = element(5, Tuple),
+
+          %get money to show to user
+          M = element(6,Tuple),
           %check if user loose or still in the game
           if
             UsrP =< 21 ->
-              From!{usr_hit, New_UsrC, hd(DlrC), 'hit or stand?'},
-              loop([{Pid,D, N, New_UsrC, DlrC, M} || {Pid, _, N, _, _, M} <- List, Pid =:= From]);
-            true       ->  
-              From! {usr_hit, New_UsrC, hd(DlrC), loose},
-              New_Money = element(6, Tuple) - element(3,Tuple),
+              From!{usr_hit, New_UsrC, hd(DlrC), 'hit or stand?', M},
+              loop([{Pid,D, N, New_UsrC, DlrC, M} || {Pid, _, N, _, _, _} <- List, Pid =:= From]);
+            true       -> 
+              New_Money = M - element(3,Tuple), 
+              From! {usr_hit, New_UsrC, hd(DlrC), loose, New_Money},
               loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
           end
       end;
@@ -107,15 +120,15 @@ loop(List) ->
           
           if 
             UsrP == 21 andalso length(UsrC) == 2 andalso DlrP == 21 andalso length(DlrC)==2 -> 
-              From! {usr_stand, UsrC, DlrC, 'draw'},
+              From! {usr_stand, UsrC, DlrC, 'draw', Money},
               loop([{Pid,D, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
             UsrP == 21 andalso length(UsrC) == 2             -> 
-              From! {usr_stand, UsrC, DlrC, 'have blackjack'},
               New_Money = Money + 1.5* Bet,
+              From! {usr_stand, UsrC, DlrC, 'have blackjack', New_Money},
               loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
              DlrP == 21 andalso length(DlrC) == 2 ->
-              From! {usr_stand, UsrC, DlrC, loose},
               New_Money = Money - Bet,
+              From! {usr_stand, UsrC, DlrC, loose, New_Money},
               loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
            
             true                         -> 
@@ -123,19 +136,19 @@ loop(List) ->
               New_DlrP = point (New_DlrC),
               New_deck = D -- New_DlrC,
               if New_DlrP > 21 -> 
-                  From! {usr_stand, UsrC, New_DlrC, win},
                   New_Money = Money + Bet,
+                  From! {usr_stand, UsrC, New_DlrC, win, New_Money},
                   loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
                 New_DlrP < UsrP -> 
-                  From! {usr_stand, UsrC, New_DlrC, win},
                   New_Money = Money + Bet,
+                  From! {usr_stand, UsrC, New_DlrC, win, New_Money},                
                   loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
                 New_DlrP == UsrP -> 
-                  From! {usr_stand, UsrC, New_DlrC, draw},
+                  From! {usr_stand, UsrC, New_DlrC, draw, Money},
                   loop([{Pid,New_deck, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);         
                 true -> 
-                  From! {usr_stand, UsrC, New_DlrC, loose},
                   New_Money = Money - Bet,
+                  From! {usr_stand, UsrC, New_DlrC, loose, New_Money},
                   loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
               end
             end
@@ -185,12 +198,17 @@ usr_start() ->
 
 %usr has to bet first then can hit or stand.
 usr_bet(N) -> 
-  bjgame! {self(), bet, N},
-  receive 
-    {bet, Msg1, Msg2, Msg3}     -> io:format('You bet ~p, your cards are ~p, dealer cards are ~p. ~n', [Msg1, Msg2, Msg3]);
-    {not_bet, Msg} -> Msg
-  after 1000 ->
-    timeout  
+  if N < 50 orelse N > 500 ->
+    io:format('Your bet is invalid ~n');
+   true ->
+    bjgame! {self(), bet, N},
+    receive 
+      {bet, Msg1, Msg2, Msg3, Msg4}     -> io:format('You bet ~p, your cards are ~p, dealer cards are ~p. You have ~p ~n', [Msg1, Msg2, Msg3, Msg4]);
+      {not_bet, Msg} -> Msg;
+      {cannot_bet, Msg} -> Msg
+    after 1000 ->
+      timeout  
+    end
   end. 
 
 
@@ -210,7 +228,7 @@ usr_hit () ->
   bjgame! {self(), hit},
   receive  
     {not_bet, Msg} -> Msg;
-    {usr_hit, Msg1, Msg2, Msg3} -> io:format('Your cards are ~p, dealer card(s) are ~p, you ~p. ~n', [Msg1, Msg2, Msg3])
+    {usr_hit, Msg1, Msg2, Msg3, Msg4} -> io:format('Your cards are ~p, dealer card(s) are ~p, you ~p. You have ~p ~n', [Msg1, Msg2, Msg3, Msg4])
   after 1000 -> 
     timeout
   end.
@@ -219,7 +237,7 @@ usr_stand() ->
   bjgame! {self(), stand},
   receive  
     {not_bet, Msg} -> Msg;
-    {usr_stand, Msg1, Msg2, Msg3} -> io:format('Your cards are ~p, dealer card(s) are ~p, you ~p. ~n', [Msg1, Msg2, Msg3])
+    {usr_stand, Msg1, Msg2, Msg3, Ms} -> io:format('Your cards are ~p, dealer card(s) are ~p, you ~p. You have ~p ~n', [Msg1, Msg2, Msg3, Ms])
   after 1000 -> 
     timeout
   end.
