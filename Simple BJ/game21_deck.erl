@@ -3,7 +3,6 @@
 
 -define(SUITS, [diamond, heart, club, spade] ).
 -define(CARDS, [{ace},{2},{3},{4},{5},{6},{7},{8},{9},{10},{jack},{queen},{king}]).
-%sign the number and the value to each card, not sure if need to sign one more {ace,11}??
 
 
 deck() ->

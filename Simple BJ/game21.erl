@@ -2,7 +2,7 @@
 -import (game21_deck, [deck/0, shuffled/1,deal/2]).
 
 %-define(SUITS, [diamond, heart, club, spade] ).
-%-define(CARDS, [{ace,1},{2,2},{3,3},{4,4},{5,5},{6,6},{7,7},{8,8},{9,9},{10,10},{jack,10},{queen,10},{king,10}]).
+%-define(CARDS, [{ace},{2},{3},{4},{5},{6},{7},{8},{9},{10},{jack},{queen},{king}]).
 -export([start/0,stop/0, init/0,usr_bet/1,
   usr_double_down/0,usr_hit/0,usr_stand/0,make_deck/0,usr_start/0,point/1, member/2]).
 
@@ -154,39 +154,59 @@ loop(List) ->
             end
         end
 
-  %{From, double}->
+  {From, double}->
   %Check if the user has initial bet
-    %case  of 
-      %undefined -> 
-      %From! {not_bet, 'You have to bet first'},
-     % loop (List);
-    %_ -> 
-      % Get the initial bet, double it
-      %double_bet= element(2,menber(From, List))*2,
-      %Get one more new card
-      %new_card = deal(element(1,menber(From, List))),
-      %Get the points user has before, add with new card's point
-      %user_newpoint= element(4,menber(From,List)+element(2, 
-      %(check if user point over 21, if yes then user lose) 
-      % else get dealer's point
-      % add card and calculate new point until dealer's point is bigger than 16   
-      %dealer_point=
+     Tuple = member(From, List),
+      case Tuple of 
+      undefined -> 
+      From! {not_bet, 'You have to bet first'},
+      loop (List);
+    _ -> 
+       D = element (2,Tuple),
+       Bet  = element(3,Tuple),
+       UsrC = element(4,Tuple),
+       DlrC = element(5,Tuple),
+       Money = element(6,Tuple),
+       UsrP = point(UsrC),
+  
+    % Get the initial bet, double it
+      Double_bet= Bet*2,
+    % Get one more new card, and add to user cards
+      One_moreC = deal(D,1),
+      New_UsrC = UsrC ++ Onc_moreC,
+    % Get the points user has before, add with new card's point
+      User_newpoint= point(New_UsrC),
+    % ----------------------------------------------------------
+    % check if user point over 21, if yes then user lose
+      if User_newpoint > 21 ->
+            From! {busted, UsrC, DlrC, lose},
+            New_Money = Money - Bet,
+            loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+
+      % else get dealer's point, add card and calculate new point until dealer's point is bigger than 16   
+      Dealer_point=point(DlrC),
+      New_DlrC = dealer_deal(D, DlrC, DlrP),
+      New_DlrP = point (New_DlrC),
+
       % check who has higher point and below 21
-      %if  
+      if  
         %check funtion with if its over 21
         %compare user with dealer points, user win then send win messgage
-       %   From! {double, win} 
-        %true
-        %  From! {double, lose}
-      %end
+          From! {double, win} 
+        true
+          From! {double, lose}
+        end
+      end
       %calculate how much money is left, if win , plus with double_bet, loose, minus that
-      %user_moneyleft=
-      % new deck is the deck before -- all cards dealt 
-      % new_deck=  cards left in deck 
+      user_moneyleft=
+      % new deck is the deck before -- all cards dealt in double down 
+      New_deck= D -- New_UsrC, 
 
       %loop initial bet, new deck, no point for user, dealer, no card dealt, new amount of money
-      %loop([{Pid, D, N, 0, 0, [],[]}|| {Pid, _, N, _,_,_,_} <- List, Pid == From, D==new_deck])  
+      loop([{Pid, New_deck, N, 0, 0, [],[]}|| {Pid, _, N, _,_,_,_} <- List, Pid == From])  
 end.
+
+
 
 usr_start() -> 
   bjgame! {self(), start},
@@ -215,13 +235,16 @@ usr_bet(N) ->
 
 % user chosen double down or hit or stay. once chosen hit, double down won't show in next turn, (only showing hit or stand)
 % when chosen double, user will recive one more card and double the bet and game end.
+
 usr_double_down()->  ok.
-%     bjgame! {self(), double},
-%receive
-%     {double, Msg } -> io:format('You ~p ~n', [Msg]);
-% after 1000 ->
-%   timeout 
-%end.
+     bjgame! {self(), double},
+receive
+     {double, Msg } -> io:format('You ~p ~n', [Msg]);
+     {busted, Msg } -> io:format('You ~p ~n', [Msg])
+ after 1000 ->
+   timeout 
+end.
+
 
 % Hit or stand and get message win/lose/ask for another hit or stand
 usr_hit () -> 
