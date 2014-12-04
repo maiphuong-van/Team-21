@@ -105,7 +105,11 @@ loop(List) ->
           UsrP = point(UsrC),
           DlrP = point(DlrC),
           
-          if UsrP == 21 andalso length(UsrC) == 2             -> 
+          if 
+            UsrP == 21 andalso length(UsrC) == 2 andalso DlrP == 21 andalso length(DlrC)==2 -> 
+              From! {usr_stand, UsrC, DlrC, 'draw'},
+              loop([{Pid,D, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+            UsrP == 21 andalso length(UsrC) == 2             -> 
               From! {usr_stand, UsrC, DlrC, 'have blackjack'},
               New_Money = Money + 1.5* Bet,
               loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
@@ -119,7 +123,7 @@ loop(List) ->
               New_DlrP = point (New_DlrC),
               New_deck = D -- New_DlrC,
               if New_DlrP > 21 -> 
-                  From! {usr_stand, UsrC, DlrC, win},
+                  From! {usr_stand, UsrC, New_DlrC, win},
                   New_Money = Money + Bet,
                   loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
                 New_DlrP < UsrP -> 
@@ -206,7 +210,7 @@ usr_hit () ->
   bjgame! {self(), hit},
   receive  
     {not_bet, Msg} -> Msg;
-    {usr_hit, Msg1, Msg2, Msg3} -> io:format('Your cards are ~p, dealer cards are ~p, you ~p. ~n', [Msg1, Msg2, Msg3])
+    {usr_hit, Msg1, Msg2, Msg3} -> io:format('Your cards are ~p, dealer card(s) are ~p, you ~p. ~n', [Msg1, Msg2, Msg3])
   after 1000 -> 
     timeout
   end.
@@ -215,7 +219,7 @@ usr_stand() ->
   bjgame! {self(), stand},
   receive  
     {not_bet, Msg} -> Msg;
-    {usr_stand, Msg1, Msg2, Msg3} -> io:format('Your cards are ~p, dealer cards are ~p, you ~p. ~n', [Msg1, Msg2, Msg3])
+    {usr_stand, Msg1, Msg2, Msg3} -> io:format('Your cards are ~p, dealer card(s) are ~p, you ~p. ~n', [Msg1, Msg2, Msg3])
   after 1000 -> 
     timeout
   end.

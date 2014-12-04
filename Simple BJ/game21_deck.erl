@@ -37,7 +37,10 @@ randomize(List) ->
 
 deal(_,0) -> [];
 deal(List, N)  ->  
-    [hd(List)] ++ deal(tl(List), N-1).
+    if length(List) =< 12 -> 
+        Deck = shuffled(deck());
+    true -> Deck = List end,
+    [hd(Deck)] ++ deal(tl(List), N-1).
 
 
                    
