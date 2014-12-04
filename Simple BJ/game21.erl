@@ -52,7 +52,10 @@ loop(List) ->
         loop (List);
       _         -> 
         M = element(6,Tuple),
-        if M < N -> 
+        %check if user can bet
+        if M < 50 -> 
+            From! {loose, 'You have less money than minimum bet, you loose, restart to continue'};
+        M < N -> 
           From! {cannot_bet, 'You do not have enough money to bet'},
           loop(List);
         true -> 
@@ -110,43 +113,49 @@ loop(List) ->
           From! {not_bet, 'You have to start first'},
           loop (List);
         _         -> 
+        %get most of elements from the tuple
           D = element (2,Tuple),
           Bet  = element(3,Tuple),
           UsrC = element(4,Tuple),
           DlrC = element(5,Tuple),
           Money = element(6,Tuple),
+        %calculate points
           UsrP = point(UsrC),
           DlrP = point(DlrC),
           
           if 
+            %check if both natural blackjack -> push
             UsrP == 21 andalso length(UsrC) == 2 andalso DlrP == 21 andalso length(DlrC)==2 -> 
               From! {usr_stand, UsrC, DlrC, 'draw', Money},
               loop([{Pid,D, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+            %check is user has black jack
             UsrP == 21 andalso length(UsrC) == 2             -> 
               New_Money = Money + 1.5* Bet,
               From! {usr_stand, UsrC, DlrC, 'have blackjack', New_Money},
               loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
-             DlrP == 21 andalso length(DlrC) == 2 ->
-              New_Money = Money - Bet,
-              From! {usr_stand, UsrC, DlrC, loose, New_Money},
-              loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
-           
+             
             true                         -> 
-              New_DlrC = dealer_deal(D, DlrC, DlrP),
+            % else dealer will deal card (if neccessary to get over 16 points)
+            %calculate dealer's new point and new deck
+              New_DlrC = dealer_deal(D, DlrC),
               New_DlrP = point (New_DlrC),
               New_deck = D -- New_DlrC,
+            %check if dealer has more than 21 -> win
               if New_DlrP > 21 -> 
                   New_Money = Money + Bet,
                   From! {usr_stand, UsrC, New_DlrC, win, New_Money},
                   loop([{Pid,D, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+                  %User had more points than dealer -> win
                 New_DlrP < UsrP -> 
                   New_Money = Money + Bet,
                   From! {usr_stand, UsrC, New_DlrC, win, New_Money},                
                   loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+                  %User has same points as dealer -> draw
                 New_DlrP == UsrP -> 
                   From! {usr_stand, UsrC, New_DlrC, draw, Money},
                   loop([{Pid,New_deck, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);         
                 true -> 
+                %User has less points than dealer -> loose
                   New_Money = Money - Bet,
                   From! {usr_stand, UsrC, New_DlrC, loose, New_Money},
                   loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
@@ -156,18 +165,18 @@ loop(List) ->
 
   {From, double}->
   %Check if the user has initial bet
-     Tuple = member(From, List),
-      case Tuple of 
-      undefined -> 
+    Tuple = member(From, List),
+    case Tuple of 
+    undefined -> 
       From! {not_bet, 'You have to bet first'},
       loop (List);
     _ -> 
-       D = element (2,Tuple),
-       Bet  = element(3,Tuple),
-       UsrC = element(4,Tuple),
-       DlrC = element(5,Tuple),
-       Money = element(6,Tuple),
-       UsrP = point(UsrC),
+      D = element (2,Tuple),
+      Bet  = element(3,Tuple),
+      UsrC = element(4,Tuple),
+      DlrC = element(5,Tuple),
+      Money = element(6,Tuple),
+      UsrP = point(UsrC),
   
     % Get the initial bet, double it
       Double_bet= Bet*2,
@@ -179,9 +188,9 @@ loop(List) ->
     % ----------------------------------------------------------
     % check if user point over 21, if yes then user lose
       if User_newpoint > 21 ->
-            From! {busted, UsrC, DlrC, lose},
-            New_Money = Money - Double_Bet,
-            loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+        From! {busted, UsrC, DlrC, lose},
+        New_Money = Money - Double_Bet,
+        loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
 
       % else get dealer's point, add card and calculate new point until dealer's point is bigger than 16   
       Dealer_point=point(DlrC),
@@ -226,6 +235,7 @@ usr_bet(N) ->
     receive 
       {bet, Msg1, Msg2, Msg3, Msg4}     -> io:format('You bet ~p, your cards are ~p, dealer cards are ~p. You have ~p ~n', [Msg1, Msg2, Msg3, Msg4]);
       {not_bet, Msg} -> Msg;
+      {loose, Msg} -> Msg;
       {cannot_bet, Msg} -> Msg
     after 1000 ->
       timeout  
@@ -237,14 +247,14 @@ usr_bet(N) ->
 % user chosen double down or hit or stay. once chosen hit, double down won't show in next turn, (only showing hit or stand)
 % when chosen double, user will recive one more card and double the bet and game end.
 
-usr_double_down()->  ok.
-     bjgame! {self(), double},
-receive
-     {double, Msg } -> io:format('You ~p ~n', [Msg]);
-     {busted, Msg } -> io:format('You ~p ~n', [Msg])
- after 1000 ->
-   timeout 
-end.
+usr_double_down()->
+  bjgame! {self(), double},
+  receive
+       {double, Msg } -> io:format('You ~p ~n', [Msg]);
+       {busted, Msg } -> io:format('You ~p ~n', [Msg])
+   after 1000 ->
+     timeout 
+  end.
 
 
 % Hit or stand and get message win/lose/ask for another hit or stand
@@ -283,7 +293,8 @@ point(Card_List, UsrP) ->
       New_UsrP = UsrP + element(1,C)
   end, 
   point(tl(Card_List), New_UsrP).
-  
+ 
+%overload, to put ace in the end of the list
 point(Card_List) -> 
   Ace = member(ace, Card_List),
   %Check if we have Ace
@@ -297,7 +308,8 @@ point(Card_List) ->
    point (New_List, 0)
   end.
 
-
+% will return a list of cards from Dealer's original cards 
+% The way dealer deals is dependent on rules, he has to deal 1 card until his points is over 16
 dealer_deal (_, DlrC, DlrP) when DlrP> 16                      -> DlrC;
 dealer_deal (Deck, DlrC, DlrP) when DlrP >0 andalso DlrP =< 16 ->
   New_card = deal(Deck, 1),
@@ -305,3 +317,8 @@ dealer_deal (Deck, DlrC, DlrP) when DlrP >0 andalso DlrP =< 16 ->
   New_DlrC = DlrC ++ New_card, 
   New_DlrP = point(New_DlrC),
   dealer_deal (New_deck, New_DlrC, New_DlrP).
+
+%overload, so we don't have to mention dealer's point (just to make it short and simple)
+dealer_deal(Deck, DlrC) -> 
+  DlrP = point(DlrC),
+  dealer_deal(Deck, DlrC, DlrP).
