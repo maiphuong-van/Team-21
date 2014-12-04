@@ -180,14 +180,15 @@ loop(List) ->
     % check if user point over 21, if yes then user lose
       if User_newpoint > 21 ->
             From! {busted, UsrC, DlrC, lose},
-            New_Money = Money - Bet,
+            New_Money = Money - Double_Bet,
             loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
 
       % else get dealer's point, add card and calculate new point until dealer's point is bigger than 16   
       Dealer_point=point(DlrC),
       New_DlrC = dealer_deal(D, DlrC, DlrP),
       New_DlrP = point (New_DlrC),
-
+      
+      
       % check who has higher point and below 21
       if  
         %check funtion with if its over 21
