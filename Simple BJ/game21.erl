@@ -176,7 +176,6 @@ loop(List) ->
       UsrC = element(4,Tuple),
       DlrC = element(5,Tuple),
       Money = element(6,Tuple),
-      UsrP = point(UsrC), %%You don't need to check user's point here
   
       % Get the initial bet, double it
       Double_bet= Bet*2,
@@ -188,7 +187,7 @@ loop(List) ->
     % ----------------------------------------------------------
     % check if user point over 21, if yes then user lose
       if User_newpoint > 21 ->
-        From! {busted, UsrC, DlrC, loose}, %%Why not showing the amount of money?
+        From! {busted, UsrC, DlrC, New_Money, loose}, %%
         New_Money = Money - Double_bet,
         loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
 
@@ -196,17 +195,22 @@ loop(List) ->
       true  ->
         New_DlrC = dealer_deal(D, DlrC),
         New_DlrP = point (New_DlrC),
+        
         %% New deck of card here! 
         %%You see, your dealer dealed more cards out, those have to be taken away from the deck too
       % check who has higher point and below 21
-      if %%what if dealer has more than 21 points? What if dealer and user have the same point?
-        New_DlrP < UsrP -> 
+     
+      if %%what if dealer has more than 21 points? 
+        New_DlrP < User_newpoint -> 
           New_Money = Money + Double_bet,
-          From! {double, UsrC, New_DlrC, win, New_Money},                
+          From! {double, User_newpoint, New_DlrC, win, New_Money},                
           loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+        New_DlrP == User_newpoint -> 
+          From! {double, User_newpoint, New_DlrC, draw, Money},
+          loop([{Pid,New_deck, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);  
         true ->
           New_Money = Money - Double_bet,
-          From! {double, UsrC, New_DlrC, loose, New_Money},
+          From! {double, User_newpoint, New_DlrC, loose, New_Money},
           loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
         end
      end
