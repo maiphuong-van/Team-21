@@ -178,10 +178,10 @@ loop(List) ->
       Money = element(6,Tuple),
   
       % Get the initial bet, double it
-      Double_bet= Bet*2,
+      Double_bet = Bet*2,
       % Get one more new card, and add to user cards
       New_UsrC = UsrC ++ deal(D,1),
-      New_deck= D -- New_UsrC,
+      New_deck = D -- New_UsrC,
       % Get the points user has before, add with new card's point
       User_newpoint= point(New_UsrC),
     % ----------------------------------------------------------
@@ -195,24 +195,31 @@ loop(List) ->
       true  ->
         New_DlrC = dealer_deal(D, DlrC),
         New_DlrP = point (New_DlrC),
+        Final_Deck = New_deck -- New_DlrC,
+
         %% New deck of card here! 
         %%You see, your dealer dealed more cards out, those have to be taken away from the deck too
       % check who has higher point and below 21
      
       if %%what if dealer has more than 21 points?
+       New_DlrP > 21 -> 
+          New_Money = Money + Double_bet,
+          From! {double, New_UsrC, New_DlrC, win, New_Money},
+          loop([{Pid,Final_Deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+
         New_DlrP < User_newpoint -> 
           New_Money = Money + Double_bet,
-          From! {double, UsrC, New_DlrC, win, New_Money},                
-          loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+          From! {double, New_UsrC, New_DlrC, win, New_Money},                
+          loop([{Pid,Final_Deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
       
         New_DlrP == User_newpoint -> 
-          From! {double, UsrC, New_DlrC, draw, Money},
-          loop([{Pid,New_deck, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]); 
+          From! {double, New_UsrC, New_DlrC, draw, Money},
+          loop([{Pid,Final_Deck, 0, 0, 0, Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]); 
       
         true ->
           New_Money = Money - Double_bet,
-          From! {double, UsrC, New_DlrC, loose, New_Money},
-          loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
+          From! {double, New_UsrC, New_DlrC, loose, New_Money},
+          loop([{Pid,Final_Deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
         end
      end
   end
