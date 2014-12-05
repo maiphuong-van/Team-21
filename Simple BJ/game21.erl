@@ -163,58 +163,54 @@ loop(List) ->
             end
         end
 
-  %{From, double}->
+%  {From, double}->
   %Check if the user has initial bet
-   % Tuple = member(From, List),
-    %case Tuple of 
-    %undefined -> 
-    %  From! {not_bet, 'You have to bet first'},
-     % loop (List);
-    %_ -> 
-     % D = element (2,Tuple),
-      %Bet  = element(3,Tuple),
-      %UsrC = element(4,Tuple),
-      %DlrC = element(5,Tuple),
-      %Money = element(6,Tuple),
-      %UsrP = point(UsrC),
+%    Tuple = member(From, List),
+%    case Tuple of 
+%    undefined -> 
+%      From! {not_bet, 'You have to bet first'},
+%      loop (List);
+%    _ -> 
+%      D = element (2,Tuple),
+%      Bet  = element(3,Tuple),
+%      UsrC = element(4,Tuple),
+%      DlrC = element(5,Tuple),
+%      Money = element(6,Tuple),
+%      UsrP = point(UsrC),
   
     % Get the initial bet, double it
-      %Double_bet= Bet*2,
+%      Double_bet= Bet*2,
     % Get one more new card, and add to user cards
-      %One_moreC = deal(D,1),
-      %New_UsrC = UsrC ++ Onc_moreC,
+%      New_UsrC = UsrC ++ deal(D,1),
+%      New_deck= D -- New_UsrC,
     % Get the points user has before, add with new card's point
-      %User_newpoint= point(New_UsrC),
+%      User_newpoint= point(New_UsrC),
     % ----------------------------------------------------------
     % check if user point over 21, if yes then user lose
-      %if User_newpoint > 21 ->
-       % From! {busted, UsrC, DlrC, lose},
-       % New_Money = Money - Double_Bet,
-       % loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+%      if User_newpoint > 21 ->
+%                  From! {busted, UsrC, DlrC, loose},
+%                  New_Money = Money - Double_Bet,
+%                  loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
 
       % else get dealer's point, add card and calculate new point until dealer's point is bigger than 16   
-      %Dealer_point=point(DlrC),
-      %New_DlrC = dealer_deal(D, DlrC, DlrP),
-      %New_DlrP = point (New_DlrC),
-      
-      
-      % check who has higher point and below 21
-      %if  
-        %check funtion with if its over 21
-        %compare user with dealer points, user win then send win messgage
-       %   From! {double, win} ,
-        %true ->
-         % From! {double, lose}
-       
-      %calculate how much money is left, if win , plus with double_bet, loose, minus that
-      %user_moneyleft=
-      % new deck is the deck before -- all cards dealt in double down 
-      %New_deck= D -- New_UsrC, 
+%         true  ->
+%                  Dealer_point=point(DlrC),
+%                  New_DlrC = dealer_deal(D, DlrC, DlrP),
+%                  New_DlrP = point (New_DlrC),
 
-      %loop initial bet, new deck, no point for user, dealer, no card dealt, new amount of money
-      %loop([{Pid, New_deck, N, 0, 0, [],[]}|| {Pid, _, N, _,_,_,_} <- List, Pid == From])  
-      % end
-      %end
+%      % check who has higher point and below 21
+%      if   New_DlrP < UsrP -> 
+%                  New_Money = Money + Double_Bet,
+%                  From! {double, UsrC, New_DlrC, win, New_Money},                
+%                  loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+%           true ->
+%                  New_Money = Money - Double_Bet,
+%                  From! {double, UsrC, New_DlrC, loose, New_Money},
+%                  loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
+%        end
+      
+%     end
+%  end
 end.
 
 
