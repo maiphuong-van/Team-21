@@ -187,7 +187,7 @@ loop(List) ->
     % ----------------------------------------------------------
     % check if user point over 21, if yes then user lose
       if User_newpoint > 21 ->
-        From! {busted, User_newpoint, DlrC, loose, New_Money}, %%Why not showing the amount of money?
+        From! {double, User_newpoint, DlrC, loose, New_Money}, %%Why not showing the amount of money?
         New_Money = Money - Double_bet,
         loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
 
@@ -256,8 +256,8 @@ usr_double_down()->
   bjgame! {self(), double},
   receive
       %%receive {not_bet, Msg}?
-       {double, Msg } -> io:format('You ~p ~n', [Msg]);
-       {busted, Msg } -> io:format('You ~p ~n', [Msg])
+       {not_bet, Msg} -> Msg;
+       {double, Msg1, Msg2, Msg3, Msg4, Msg5} -> io:format('You ~p ~n', [Msg1, Msg2, Msg3, Msg4, Msg5])
        %% Those two will NOT work, timeout would defenitely occurs.
        %% You sent message back with a tuple of 4,5 elements in loop but here the message are a tuple of 2 elements
        %% Check hit and stand for how I deal with multiple messages 
