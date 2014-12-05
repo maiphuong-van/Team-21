@@ -171,50 +171,47 @@ loop(List) ->
        From! {not_bet, 'You have to bet first'},
        loop (List);
     _ -> 
-       D = element (2,Tuple),
-       Bet  = element(3,Tuple),
-       UsrC = element(4,Tuple),
-       DlrC = element(5,Tuple),
-       Money = element(6,Tuple),
-       UsrP = point(UsrC),
+      D = element (2,Tuple),
+      Bet  = element(3,Tuple),
+      UsrC = element(4,Tuple),
+      DlrC = element(5,Tuple),
+      Money = element(6,Tuple),
+      UsrP = point(UsrC), %%You don't need to check user's point here
   
-    % Get the initial bet, double it
-       Double_bet= Bet*2,
-    % Get one more new card, and add to user cards
-       New_UsrC = UsrC ++ deal(D,1),
-       New_deck= D -- New_UsrC,
-    % Get the points user has before, add with new card's point
-       User_newpoint= point(New_UsrC),
+      % Get the initial bet, double it
+      Double_bet= Bet*2,
+      % Get one more new card, and add to user cards
+      New_UsrC = UsrC ++ deal(D,1),
+      New_deck= D -- New_UsrC,
+      % Get the points user has before, add with new card's point
+      User_newpoint= point(New_UsrC),
     % ----------------------------------------------------------
     % check if user point over 21, if yes then user lose
-    if User_newpoint > 21 ->
-                  From! {busted, UsrC, DlrC, loose},
-                  New_Money = Money - Double_bet,
-                  loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+      if User_newpoint > 21 ->
+        From! {busted, UsrC, DlrC, loose}, %%Why not showing the amount of money?
+        New_Money = Money - Double_bet,
+        loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
 
       % else get dealer's point, add card and calculate new point until dealer's point is bigger than 16   
-         true  ->
-                %delete_
-                  
-                  New_DlrC = dealer_deal(D, DlrC),
-                  New_DlrP = point (New_DlrC),
-
-
+      true  ->
+        New_DlrC = dealer_deal(D, DlrC),
+        New_DlrP = point (New_DlrC),
+        %% New deck of card here! 
+        %%You see, your dealer dealed more cards out, those have to be taken away from the deck too
       % check who has higher point and below 21
-      if   New_DlrP < UsrP -> 
-                  New_Money = Money + Double_bet,
-                  From! {double, UsrC, New_DlrC, win, New_Money},                
-                  loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
-           true ->
-                  New_Money = Money - Double_bet,
-                  From! {double, UsrC, New_DlrC, loose, New_Money},
-                  loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
+      if %%what if dealer has more than 21 points? What if dealer and user have the same point?
+        New_DlrP < UsrP -> 
+          New_Money = Money + Double_bet,
+          From! {double, UsrC, New_DlrC, win, New_Money},                
+          loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From]);
+        true ->
+          New_Money = Money - Double_bet,
+          From! {double, UsrC, New_DlrC, loose, New_Money},
+          loop([{Pid,New_deck, 0, 0, 0, New_Money} || {Pid, _, _, _, _, _} <- List, Pid =:= From])
         end
      end
   end
 end.
-
-
 
 usr_start() -> 
   bjgame! {self(), start},
@@ -240,16 +237,18 @@ usr_bet(N) ->
     end
   end. 
 
-
-
 % user chosen double down or hit or stay. once chosen hit, double down won't show in next turn, (only showing hit or stand)
 % when chosen double, user will recive one more card and double the bet and game end.
 
 usr_double_down()->
   bjgame! {self(), double},
   receive
+      %%receive {not_bet, Msg}?
        {double, Msg } -> io:format('You ~p ~n', [Msg]);
        {busted, Msg } -> io:format('You ~p ~n', [Msg])
+       %% Those two will NOT work, timeout would defenitely occurs.
+       %% You sent message back with a tuple of 4,5 elements in loop but here the message are a tuple of 2 elements
+       %% Check hit and stand for how I deal with multiple messages 
    after 1000 ->
      timeout 
   end.
