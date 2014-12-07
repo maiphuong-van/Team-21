@@ -30,7 +30,7 @@ stop() ->
 usr_start(Name) -> 
   bjgame! {self(), {start, Name}},
   receive 
-    {_Pid, started, Msg, Msg1} -> io:format('You are ~p. ~p', [Msg, Msg1])
+    {_Pid, started, Msg, Msg1} -> io:format('You are ~p. ~p ~n', [Msg, Msg1])
   after 1000 ->
     timeout  
   end.
@@ -58,7 +58,7 @@ usr_double_down(Name)->
   receive 
       {_Pid, not_start, Msg} -> Msg;
       {_Pid, not_bet, Msg} -> Msg;
-      {_pid, no_double, Msg, Msg1} -> io:format('You are ~p. ~p', [Msg, Msg1]);
+      {_pid, no_double, Msg, Msg1} -> io:format('You are ~p. ~p ~n', [Msg, Msg1]);
       {_Pid, double, Msg, Msg1, Msg2, Msg3, Msg4} -> io:format('You are ~p. Your cards are ~p, dealer card(s) are ~p, you ~p. You have ~p ~n', [Msg, Msg1, Msg2, Msg3, Msg4])
    after 1000 ->
      timeout 

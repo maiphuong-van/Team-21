@@ -1,0 +1,145 @@
+1. Compile game21 and game21_deck (you don't even need to if you don't make any change to the file, as long as you have .beam files) 
+2. To start the server process
+game21:start().
+3. Now you have to register your user 
+game21:usr_start(Name). 
+
+where Name is your user's name
+
+for example:
+game21:usr_start(cat).
+game21:usr_start(dog).
+etc...
+
+-If you type anything like usr_bet(Name,N), usr_hit(Name)... error messages should show
+The program should NOT crash.
+
+This will save your user's name in loop and give your user new deck of cards and budget of 1000
+
+4. Now your user have to bet using 
+
+game21:bet(Name, N).
+
+where Name is your user's name and N is the amount of bet (limit from 50 to 500) 
+
+for example:
+game21:usr_bet(cat, 100).
+game21:usr_bet(dog, 300).
+
+-If the buget is not enough for the bet, you should be informed
+-If you don't have money for minimum bet, you should be informed
+-If you hit or stand before bet, you should get error messages
+
+If you do it right, you should get message telling your user name, your bet, your 2 cards, yoru dealer's 1st card and your budget
+
+5. After betting you are free to hit/stand or double down. 
+After stand and double down, your points will be calculated, and you have to bet again to continue playing
+After hit, you will have to bet again if you exceed 21 points or can choose to hit or stand.
+
+	a. Hit
+		game21:hit(Name).
+
+		for example:
+		game21:usr_hit(cat).
+		game21:usr_hit(dog).
+
+		-You should be informed if you haven't bet or start
+		-You should get loosing message if your points is over 21, the message should contains your name, your new deck of cards, your dealer's 1st card and your new budget (less than before).
+		-Otherwise, you should get a message with your name, your new decks of cards, dealer's 1st card and your budget.
+
+	b. Stand
+		game21:usr_stand(name).
+
+		or example:
+		game21:usr_stand(cat).
+		game21:usr_stand(dog).
+
+		- You should be informed if you haven't bet or start.
+		- If you are doing it right, you should get message with your name, your cards, dealer's new deck and your new budget.
+		- If you win, your budget should have original amount and your bet
+		- If you loose, your budget will be less, same amount as you bet
+		- If you draw, no change in budget
+		- If you have natural blackjack, you will get your bet*1.5
+
+	c. Doube down
+		game21:usr_double_down(Name).
+
+		for example:
+		game21:usr_double_down(cat).
+
+		- You should be informed if you haven't bet or start.
+		- Rule is, you can only double down after betting, if you have more than 2 cards in your deck, you will get error message
+		- If you are doing it right, you should get message with your name, your cards plus 1 new card, dealer's new deck and your new budget.
+		-If you win, your budget should have original amount and double of your bet
+		- If you loose, your budget will be less, double amount of you bet
+		- If you draw, no change in budget.
+
+Good luck finding bugs.
+
+
+Testing example
+
+Erlang/OTP 17 [erts-6.2] [64-bit] [smp:4:4] [async-threads:10]
+
+Eshell V6.2  (abort with ^G)
+1> cd("C:/Users/MaiPhuong/Documents/GitHub/Team-21/Simple BJ").
+C:/Users/MaiPhuong/Documents/GitHub/Team-21/Simple BJ
+ok
+2> c(game21).
+{ok,game21}
+3> game21:start().                                             
+{ok,<0.40.0>}
+4> game21:usr_bet(cat, 100).
+'You have to start first'
+5> game21:usr_start(cat).   
+You are cat. 'Please join a room or make a bet of minimum 50 and maximum 500' 
+ok
+6> game21:usr_start(bunny).
+You are bunny. 'Please join a room or make a bet of minimum 50 and maximum 500' 
+ok
+7> game21:usr_hit(bunny).  
+'You have to bet first'
+8> game21:usr_bet(bunny, 100).
+You are bunny. You bet 100, your cards are [{8,heart},{king,heart}], dealer cards are {queen,diamond}. You have 1000 
+ok
+9> game21:usr_bet(cat, 40).   
+Your bet is invalid 
+ok
+10> game21:usr_bet(cat, 50).
+You are cat. You bet 50, your cards are [{8,diamond},{8,club}], dealer cards are {3,spade}. You have 1000 
+ok
+11> game21:usr_stand(bunny).
+You are bunny. Your cards are [{8,heart},{king,heart}], dealer card(s) are [{queen,diamond},{ace,heart}], you loose. You have 900 
+ok
+12> game21:usr_hit(cat).    
+You are cat. Your cards are [{8,diamond},{8,club},{king,spade}], dealer card(s) are {3,spade}, you loose. You have 950 
+ok
+13> game21:usr_bet(cat,500).
+You are cat. You bet 500, your cards are [{8,spade},{9,heart}], dealer cards are {6,spade}. You have 950 
+ok
+14> game21:usr_hit(cat).    
+You are cat. Your cards are [{8,spade},{9,heart},{king,club}], dealer card(s) are {6,spade}, you loose. You have 450 
+ok
+15> game21:usr_bet(cat,500).
+'You do not have enough money to bet'
+16> game21:usr_bet(bunny, 100).
+You are bunny. You bet 100, your cards are [{3,heart},{jack,diamond}], dealer cards are {king, spade}. You have 900 
+ok
+17> game21:usr_hit(bunny).     
+You are bunny. Your cards are [{3,heart},{jack,diamond},{10,spade}], dealer card(s) are {king,spade}, you loose. You have 800 
+ok
+18> game21:usr_bet(bunny, 100).
+You are bunny. You bet 100, your cards are [{2,diamond},{6,heart}], dealer cards are {8,diamond}. You have 800 
+ok
+19> game21:usr_hit(bunny).     
+You are bunny. Your cards are [{2,diamond},{6,heart},{5,club}], dealer card(s) are {8,diamond}, you 'hit or stand?'. You have 800 
+ok
+20> game21:usr_hit(bunny).     
+You are bunny. Your cards are [{2,diamond},{6,heart},{5,club},{ace,diamond}], dealer card(s) are {8,diamond}, you 'hit or stand?'. You have 800 
+ok
+21> game21:usr_hit(bunny).     
+You are bunny. Your cards are [{2,diamond},{6,heart},{5,club},{ace,diamond},{5,diamond}], dealer card(s) are {8,diamond}, you 'hit or stand?'. You have 800 
+ok
+22> game21:usr_stand(bunny).
+You are bunny. Your cards are [{2,diamond},{6,heart},{5,club},{ace,diamond},{5,diamond}], dealer card(s) are [{8,diamond},{ace,heart}], you win. You have 900 
+ok
