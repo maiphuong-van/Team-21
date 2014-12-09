@@ -30,6 +30,17 @@ test() ->
 	io:format("~p user start: ~p\n", [self(), usr_start(d)]),
 	io:format("~p User bet: ~p\n", [self(), usr_bet(d,100)]),
 	io:format("~p User stand: ~p\n", [self(), usr_hit(d)]),
+	io:format("~p User stand: ~p\n", [self(), usr_hit(d)]),
+	stop(),
+	io:format("~p User double down: ~p\n", [self(), usr_double_down(d)])
+	end),
+  spawn(fun() ->
+	io:format("Process ~p started!\n", [self()]),
+	io:format("~p User bet: ~p\n", [self(), usr_bet(d,100)]),
+	io:format("~p user start: ~p\n", [self(), usr_start(d)]),
+	io:format("~p User stand: ~p\n", [self(), usr_hit(d)]),
+	io:format("~p User bet: ~p\n", [self(), usr_bet(d,100)]),
+	io:format("~p User stand: ~p\n", [self(), usr_hit(d)]),
 	io:format("~p User double down: ~p\n", [self(), usr_double_down(d)])
 	end),
  ok.
