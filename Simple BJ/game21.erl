@@ -42,9 +42,13 @@ usr_bet(Name, N) ->
    true ->
     bjgame! {self(), {bet, Name, N}},
     receive 
+      %% Msg == user reference, Msg1 == bet, Msg2 == user's card list, Ms3 == dealer's 1st card, Msg4 == User's money
       {_Pid, bet, Msg, Msg1, Msg2, Msg3, Msg4} -> io:format('You are ~p. You bet ~p, your cards are ~p, dealer cards are ~p. You have ~p ~n', [Msg,Msg1, Msg2, Msg3, Msg4]);
+      %% Msg == warning that user hasn't started
       {_Pid, not_start, Msg} -> Msg;
+      %% Msg == User has less money than minimum bet, has to restart to play again
       {_Pid, loose, Msg} -> Msg;
+      %% Msg == User tried to bet more than what they have, so they cannot bet 
       {_Pid, cannot_bet, Msg} -> Msg
     after 1000 ->
       timeout  
@@ -56,10 +60,14 @@ usr_bet(Name, N) ->
 usr_double_down(Name)->
   bjgame! {self(), {double, Name}},
   receive 
-      {_Pid, not_start, Msg} -> Msg;
-      {_Pid, not_bet, Msg} -> Msg;
-      {_pid, no_double, Msg, Msg1} -> io:format('You are ~p. ~p ~n', [Msg, Msg1]);
-      {_Pid, double, Msg, Msg1, Msg2, Msg3, Msg4} -> io:format('You are ~p. Your cards are ~p, dealer card(s) are ~p, you ~p. You have ~p ~n', [Msg, Msg1, Msg2, Msg3, Msg4])
+    %% Msg == User hasn't started the game
+    {_Pid, not_start, Msg} -> Msg;
+    %% Msg == User hasn't bet
+    {_Pid, not_bet, Msg} -> Msg;
+    %% Msg Msg == User reference, Msg1 == warning user cannot double down
+    {_pid, no_double, Msg, Msg1} -> io:format('You are ~p. ~p ~n', [Msg, Msg1]);
+    %% Msg == user reference, Msg1 == user's card list, Msg2 == dealer's card, Msg3 == win or lose or draw, Msg4 == User's money
+    {_Pid, double, Msg, Msg1, Msg2, Msg3, Msg4} -> io:format('You are ~p. Your cards are ~p, dealer card(s) are ~p, you ~p. You have ~p ~n', [Msg, Msg1, Msg2, Msg3, Msg4])
    after 1000 ->
      timeout 
   end.
@@ -68,8 +76,11 @@ usr_double_down(Name)->
 usr_hit (Name) -> 
   bjgame! {self(), {hit, Name}},
   receive  
+    %% Msg == User hasn't started the game
     {_Pid, not_start, Msg} -> Msg;
+    %% Msg == User hasn't bet
     {_Pid, not_bet, Msg} -> Msg;
+    %% Msg == User reference, Msg1 == List of user's cards, Msg2 == Dealer's 1st card, Msg3 == Loose or can countinue, Msg4 == User's money
     {_Pid, usr_hit, Msg, Msg1, Msg2, Msg3, Msg4} -> io:format('You are ~p. Your cards are ~p, dealer card(s) are ~p, you ~p. You have ~p ~n', [Msg, Msg1, Msg2, Msg3, Msg4])
   after 1000 -> 
     timeout
@@ -78,8 +89,11 @@ usr_hit (Name) ->
 usr_stand(Name) ->  
   bjgame! {self(), {stand, Name}},
   receive  
+    %% Msg == User hasn't started the game
     {_Pid, not_start, Msg} -> Msg;
+    %% Msg == User hasn't bet
     {_Pid, not_bet, Msg} -> Msg;
+    %% Msg == User reference, Msg1 == List of user's cards, Msg2 == Dealer's cards, Msg3 == Loose or win or draw, Msg4 == User's money
     {_Pid, usr_stand, Msg, Msg1, Msg2, Msg3, Msg4} -> io:format('You are ~p. Your cards are ~p, dealer card(s) are ~p, you ~p. You have ~p ~n', [Msg, Msg1, Msg2, Msg3, Msg4])
   after 1000 -> 
     timeout
