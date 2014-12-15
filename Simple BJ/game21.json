@@ -1,0 +1,48 @@
+{
+    "tables": [
+        {
+            "_ref": "kjkgjugjyfu67kf65rd4ws",
+            "name": "Pink table"
+        }
+    ],
+    "users": [
+        {
+            "_ref": "gffrtyhgftyhgftyhgf87y",
+            "name": "peili",
+            "coins": 100,
+            "table": "kjkgjugjyfu67kf65rd4ws",
+            "action": "stand",
+            "card": "Heart"
+        }
+    ],
+    "bets": [
+        {
+            "value": 50,
+            "creator": "gffrtyhgftyhgftyhgf87y",
+            "game": "gesgrsrtgsrths"
+        }
+    ],
+    "cards": [
+        {
+            "creator": "gffrtyhgftyhgftyhgf87y",
+            "rank": 6,
+            "value": 6,
+            "suit": "hearts",
+            "comment": "fuck you!",
+            "game": "gesgrsrtgsrths"
+        }
+    ],
+    "game": {
+        "gesgrsrtgsrths": {
+            "_ref": "gesgrsrtgsrths",
+            "table": "kjkgjugjyfu67kf65rd4ws",
+            "turn": 1,
+            "action": "stand"
+        }
+    },
+    "action": [
+        {
+            "type": "stand"
+        }
+    ]
+}
