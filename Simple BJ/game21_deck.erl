@@ -1,8 +1,8 @@
 -module(game21_deck).
 -export([deck/0, shuffled/1,deal/2]).
 
--define(SUITS, [diamond, heart, club, spade] ).
--define(CARDS, [{ace},{2},{3},{4},{5},{6},{7},{8},{9},{10},{jack},{queen},{king}]).
+-define(SUITS, [d, h, c, s] ).
+-define(CARDS, [{a},{2},{3},{4},{5},{6},{7},{8},{9},{10},{j},{q},{k}]).
 
 
 deck() ->

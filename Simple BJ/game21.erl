@@ -30,7 +30,7 @@ stop() ->
 usr_start(Name) -> 
   bjgame! {self(), {start, Name}},
   receive 
-    {_Pid, started, Msg, Msg1} -> io:format('You are ~p. ~p ~n', [Msg, Msg1])
+    {_Pid, started, Msg, Msg1} -> io:format('You are ~p. ~p ~n', [Msg, Msg1])  
   after 1000 ->
     timeout  
   end.
@@ -40,7 +40,7 @@ usr_bet(Name, N) ->
   if N < 50 orelse N > 500 ->
     io:format('Your bet is invalid ~n');
    true ->
-    bjgame! {self(), {bet, Name, N}},
+    bjgame! {self(), {bet, Name, N}},   
     receive 
       %% Msg == user reference, Msg1 == bet, Msg2 == user's card list, Ms3 == dealer's 1st card, Msg4 == User's money
       {_Pid, bet, Msg, Msg1, Msg2, Msg3, Msg4} -> io:format('You are ~p. You bet ~p, your cards are ~p, dealer cards are ~p. You have ~p ~n', [Msg,Msg1, Msg2, Msg3, Msg4]);
@@ -60,6 +60,7 @@ usr_bet(Name, N) ->
 usr_double_down(Name)->
   bjgame! {self(), {double, Name}},
   receive 
+
     %% Msg == User hasn't started the game
     {_Pid, not_start, Msg} -> Msg;
     %% Msg == User hasn't bet
@@ -68,6 +69,8 @@ usr_double_down(Name)->
     {_pid, no_double, Msg, Msg1} -> io:format('You are ~p. ~p ~n', [Msg, Msg1]);
     %% Msg == user reference, Msg1 == user's card list, Msg2 == dealer's card, Msg3 == win or lose or draw, Msg4 == User's money
     {_Pid, double, Msg, Msg1, Msg2, Msg3, Msg4} -> io:format('You are ~p. Your cards are ~p, dealer card(s) are ~p, you ~p. You have ~p ~n', [Msg, Msg1, Msg2, Msg3, Msg4])
+
+     
    after 1000 ->
      timeout 
   end.
@@ -334,7 +337,7 @@ point(Card_List) ->
    New_List = New_List1 ++ [Ace],
    point (New_List, 0)
   end.
-
++
 % will return a list of cards from Dealer's original cards 
 % The way dealer deals is dependent on rules, he has to deal 1 card until his points is over 16
 dealer_deal (_, DlrC, DlrP) when DlrP> 16                      -> DlrC;
