@@ -312,13 +312,13 @@ point([], UsrP)        -> UsrP;
 point(Card_List, UsrP) -> 
   C = hd(Card_List), 
   case element(1,C) of 
-    ace   -> 
+    a   -> 
       if UsrP =< 10 -> New_UsrP = UsrP + 11;
          true       -> New_UsrP = UsrP +1
       end;
-    jack  -> New_UsrP = UsrP + 10;
-    queen -> New_UsrP = UsrP + 10;
-    king  -> New_UsrP = UsrP + 10;
+    j  -> New_UsrP = UsrP + 10;
+    q -> New_UsrP = UsrP + 10;
+    k  -> New_UsrP = UsrP + 10;
     _     -> 
       New_UsrP = UsrP + element(1,C)
   end, 
@@ -326,7 +326,7 @@ point(Card_List, UsrP) ->
  
 %overload, to put ace in the end of the list
 point(Card_List) -> 
-  Ace = member(ace, Card_List),
+  Ace = member(a, Card_List),
   %Check if we have Ace
   %Not, just check the point
   %Have ace then put ace in the end
@@ -337,7 +337,7 @@ point(Card_List) ->
    New_List = New_List1 ++ [Ace],
    point (New_List, 0)
   end.
-+
+
 % will return a list of cards from Dealer's original cards 
 % The way dealer deals is dependent on rules, he has to deal 1 card until his points is over 16
 dealer_deal (_, DlrC, DlrP) when DlrP> 16                      -> DlrC;
