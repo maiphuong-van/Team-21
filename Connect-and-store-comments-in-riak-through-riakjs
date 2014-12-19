@@ -1,0 +1,11 @@
+Team-21
+=======
+var db=require('riak-js').getClient({host: "riak.myhost", port: "8098"});
+function f(){
+    for (i=0; i<comments.length; i++);
+        var comment={id:i,
+                     date:new Date(),
+                     body:comments[i]};
+};
+db.save('comments',comment.id,comment);
+db.getAll('comments');
